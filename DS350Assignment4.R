@@ -23,6 +23,12 @@ load_data = function(datafile, logger=NA){
   return(data)
 }
 
+# Get the log file name that has a date-time in the name
+get_log_filename = function(){
+  log_file_name = format(Sys.time(), format="HW4_log_%Y_%m_%d_%H%M%S.log")
+  return(log_file_name)
+}
+
 ## Get the slope and intercept
 slope_intercept = function(lm_model){
  lm_model_intercept = summary(lm_model)$coefficients[1]
@@ -40,12 +46,14 @@ test_slope_intercept = function(){
 }
 
 if (interactive()){
-  # Run unit test:
-   test_slope_intercept
   
-  # Set logging information
+  # Setup Logging
+  log_file_name = get_log_filename()
   basicConfig()
-  addHandler(writeToFile, logger="data_logger", file="file_log.log")
+  addHandler(writeToFile, file=log_file_name, level='INFO')
+  
+    # Run unit test:
+   test_slope_intercept
   
   # Set working director and load data
   loginfo("Setting wd and loading data.", logger="data_logger")
@@ -58,13 +66,33 @@ if (interactive()){
   hospitalizations = data_means[grepl('Hospitalizations', names(data[-1]))]
   admit_rate = data_means[grepl('Crude.Rate.[0-9]+$', names(data[-1]), perl = TRUE)]
    
+  # Plot hospitalizations vs admit_rate
   plot(hospitalizations, admit_rate)
   grid()
   best_line = lm(admit_rate ~ hospitalizations)
+  
+  # Add a straight line to the plot
+  
   abline(best_line, col="gray23", lty=2)
+  
+  # Calculate the Slope and the Intercept 
   a1 <- slope_intercept(best_line)
   
   loginfo((paste('For Number of Hospitalizations vs. Crude Admittance Rate, The intercept is', a1[1],'and the slope is',a1[2])))
+  
+  # Calculate SSE
+  y1 = a1[2]*hospitalizations + a1[1]
+  SSE1 = sum((y1-admit_rate)^2)
+  
+  # Calculate SST
+   y_avg1 = rep(mean(admit_rate), length(hospitalizations))
+   SST1 = sum((y1 - y_avg1)^2)  # Sum of Squares Total
+   
+  # Calculate R^2
+   
+  R21 <- 1 - SSE1/SST1
+  
+  loginfo((paste('For Number of Hospitalizations vs. Crude Admittance Rate, R^2 is', R21)))
   
   # Change in Number of Hospitalizations vs. Change in Crude Admittance Rate
   
@@ -78,4 +106,19 @@ if (interactive()){
   
   a2 <- slope_intercept(best_line_diff)
   loginfo((paste('For Change in Number of Hospitalizations vs. Change in Crude Admittance Rate, The intercept is', a2[1],'and the slope is',a2[2])))
+  
+  # Calculate SSE
+  y2 = a2[2]*hospitalizations_diff + a2[1]
+  SSE2 = sum((y2-admit_rate_diff)^2)
+  
+  # Calculate SST
+  y_avg2 = rep(mean(admit_rate_diff), length(hospitalizations_diff))
+  SST2 = sum((y2 - y_avg2)^2)  # Sum of Squares Total
+  
+  # Calculate R^2
+  
+  R22 <- 1 - SSE2/SST2
+  
+  loginfo((paste('For Change in Number of Hospitalizations vs. Change in Crude Admittance Rate, R^2 is', R22)))
+  
 }
